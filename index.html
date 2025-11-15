@@ -20,7 +20,10 @@
     <nav>
       <div class="nav-right">
         <a href=""><i class="far fa-user"></i></a>
-        <a href="./cart.html"><i class="fas fa-shopping-cart"></i></a>
+        <a href="./cart.html" id="cart-link">
+          <i class="fas fa-shopping-cart"></i>
+          <span id="cart-count" class="cart-count">0</span>
+        </a>
         <a href="./index.html"><i class="fas fa-home"></i></a>
         <a href=""><i class="fas fa-search"></i></a>
       </div>
@@ -565,6 +568,13 @@
     integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
   <script src="./js/jquery.js"></script>
   <script src="./js/owl.carousel.min.js"></script>
+  <!-- load libraries first -->
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+    integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+<script src="./js/jquery.js"></script>
+ <script src="./js/owl.carousel.min.js"></script>
+ <!-- app script after libraries -->
+<script src="./js/main.js"></script>
 </body>
 
 </html>
