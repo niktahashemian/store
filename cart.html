@@ -1,194 +1,60 @@
-<!DOCTYPE html>
-<html lang="fa">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>سبد خرید</title>
-    <link rel="stylesheet" href="./css/main.css" />
-    <link rel="stylesheet" href="./css/home.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.css"
-    />
-    <style>
-      /* ساده و مستقل برای نمایش سبد */
-      body { direction: rtl; font-family: Vazir, "Helvetica Neue", Arial, sans-serif; padding: 20px; }
-      header nav { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
-      #cart-count { background:#e33; color:#fff; border-radius:50%; padding:2px 7px; font-size:12px; margin-right:6px; }
-      .cart-container { max-width:1100px; margin:0 auto; }
-      table.cart { width:100%; border-collapse:collapse; margin-bottom:16px; }
-      table.cart th, table.cart td { padding:12px; border-bottom:1px solid #eee; text-align:right; vertical-align:middle; }
-      table.cart img { width:80px; height:auto; border-radius:4px; }
-      .qty-controls { display:flex; gap:6px; align-items:center; }
-      .qty-controls button { padding:6px 8px; cursor:pointer; }
-      .actions { display:flex; gap:8px; justify-content:flex-end; align-items:center; margin-top:12px; }
-      .btn { padding:10px 14px; background:#2d7cff; color:#fff; border-radius:4px; text-decoration:none; }
-      .btn.ghost { background:#f3f3f3; color:#333; }
-      .empty { text-align:center; padding:40px 10px; color:#666; }
-      .total-row { text-align:right; font-weight:700; font-size:18px; margin-top:10px; }
-      .remove { color:#b00; cursor:pointer; }
-      @media (max-width:600px){ table.cart img{width:60px} }
-    </style>
-  </head>
-  <body>
-    <header>
-      <nav>
-        <div>
-          <a href="./index.html" class="btn ghost"><i class="fas fa-arrow-right"></i> بازگشت به فروشگاه</a>
-        </div>
-        <div>
-          <a href="./cart.html"><i class="fas fa-shopping-cart"></i> <span id="cart-count">0</span></a>
-        </div>
-      </nav>
-    </header>
+// ...existing code...
+(function(){
+  const CART_KEY = 'shop_cart_v1';
 
-    <main class="cart-container">
-      <h2>سبد خرید شما</h2>
+  function getCart(){
+    try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; }
+    catch(e){ return []; }
+  }
+  function saveCart(cart){
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    updateCartCount();
+  }
 
-      <div id="cart-root">
-        <!-- جدول سبد یا پیام خالی اینجا رندر می‌شود -->
-      </div>
+  function updateCartCount(){
+    const cart = getCart();
+    const total = cart.reduce((s,i) => s + (i.qty || 1), 0);
+    const el = document.getElementById('cart-count');
+    if(el) el.textContent = total;
+  }
 
-      <div class="actions">
-        <button id="clear-cart" class="btn ghost">پاک کردن سبد</button>
-        <a id="checkout-btn" class="btn" href="#">ادامه فرایند سفارش</a>
-      </div>
-    </main>
+  function addToCart(item){
+    const cart = getCart();
+    const existing = cart.find(i => i.title === item.title && i.price === item.price);
+    if(existing) existing.qty = (existing.qty||1) + 1;
+    else { item.qty = 1; cart.push(item); }
+    saveCart(cart);
+  }
 
-    <script>
-      (function(){
-        const CART_KEY = 'shop_cart_v1';
+  function readProductFromCard(card){
+    const titleEl = card.querySelector('.title');
+    const priceEl = card.querySelector('.price');
+    const imgEl = card.querySelector('.img-sec img');
+    return {
+      title: titleEl ? titleEl.textContent.trim() : 'محصول',
+      price: priceEl ? priceEl.textContent.trim() : '',
+      img: imgEl ? imgEl.src : ''
+    };
+  }
 
-        function getCart(){
-          try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; }
-          catch(e){ return []; }
-        }
-        function saveCart(cart){ localStorage.setItem(CART_KEY, JSON.stringify(cart)); updateCartCount(); }
-        function updateCartCount(){
-          const cart = getCart();
-          const totalQty = cart.reduce((s,i) => s + (i.qty || 1), 0);
-          const el = document.getElementById('cart-count');
-          if(el) el.textContent = totalQty;
-        }
+  document.addEventListener('click', function(e){
+    const a = e.target.closest('a.b-text');
+    if(!a) return;
+    // اگر متن شامل "خرید" باشه اقدام کن
+    if(a.textContent && a.textContent.trim().includes('خرید')){
+      e.preventDefault();
+      const card = a.closest('.shoping-card');
+      if(!card) return;
+      const item = readProductFromCard(card);
+      addToCart(item);
+      updateCartCount();
+      // برای دیباگ: کنسول هم چاپ کن
+      console.log('added to cart:', item);
+      // بازخورد کوتاه به کاربر
+      alert('محصول به سبد اضافه شد');
+    }
+  });
 
-        function parsePersianPrice(str){
-          if(!str) return 0;
-          str = String(str).replace(/[,٫٬\s]/g,'').trim();
-          const num = parseFloat((str.match(/[\d\.]+/)||['0'])[0]) || 0;
-          if(/میلیون|میلیون/i.test(str)) return Math.round(num * 1000000);
-          if(/هزار|هزار تومان|هزارتر/i.test(str)) return Math.round(num * 1000);
-          // اگر مقدار به صورت "900000" داده شده فرض می‌کنیم واحد تومان کامل است
-          return Math.round(num);
-        }
-
-        function formatToman(num){
-          return Number(num).toLocaleString('fa-IR') + ' تومان';
-        }
-
-        function renderEmpty(){
-          const root = document.getElementById('cart-root');
-          root.innerHTML = '<div class="empty"><p>سبد خرید شما خالی است.</p><p><a href="./index.html" class="btn">رفتن به فروشگاه</a></p></div>';
-          document.getElementById('checkout-btn').style.display = 'none';
-          document.getElementById('clear-cart').style.display = 'none';
-        }
-
-        function renderCart(){
-          const cart = getCart();
-          const root = document.getElementById('cart-root');
-          if(!cart || cart.length === 0){ renderEmpty(); return; }
-
-          document.getElementById('checkout-btn').style.display = '';
-          document.getElementById('clear-cart').style.display = '';
-
-          let html = '<table class="cart"><thead><tr><th>محصول</th><th>قیمت واحد</th><th>تعداد</th><th>جمع</th><th></th></tr></thead><tbody>';
-          let total = 0;
-          cart.forEach((item, idx) => {
-            const qty = item.qty || 1;
-            const unitVal = parsePersianPrice(item.price);
-            const rowSum = unitVal * qty;
-            total += rowSum;
-            const img = item.img ? '<img src="'+item.img+'" alt="">' : '';
-            const unitLabel = item.price || formatToman(unitVal);
-            html += '<tr data-idx="'+idx+'">'+
-                    '<td style="width:40%">'+img+'<div style="display:inline-block;vertical-align:middle;margin-right:10px">'+(item.title||'محصول')+'</div></td>'+
-                    '<td style="width:15%">'+unitLabel+'</td>'+
-                    '<td style="width:20%"><div class="qty-controls">'+
-                      '<button class="qty-decrease" aria-label="کم">-</button>'+
-                      '<input class="qty-input" type="number" min="1" value="'+qty+'" style="width:56px;text-align:center"/>'+
-                      '<button class="qty-increase" aria-label="زیاد">+</button>'+
-                    '</div></td>'+
-                    '<td style="width:15%">'+formatToman(rowSum)+'</td>'+
-                    '<td style="width:10%"><span class="remove" data-idx="'+idx+'">حذف</span></td>'+
-                    '</tr>';
-          });
-          html += '</tbody></table>';
-          html += '<div class="total-row">مجموع : ' + formatToman(total) + '</div>';
-          root.innerHTML = html;
-
-          // پیوند رویدادها
-          root.querySelectorAll('.qty-increase').forEach(btn=>{
-            btn.addEventListener('click', (e)=>{
-              const tr = e.target.closest('tr'); const i = +tr.dataset.idx;
-              changeQty(i, (getCart()[i].qty||1) + 1);
-            });
-          });
-          root.querySelectorAll('.qty-decrease').forEach(btn=>{
-            btn.addEventListener('click', (e)=>{
-              const tr = e.target.closest('tr'); const i = +tr.dataset.idx;
-              const current = (getCart()[i].qty||1);
-              if(current > 1) changeQty(i, current - 1);
-            });
-          });
-          root.querySelectorAll('.qty-input').forEach(input=>{
-            input.addEventListener('change', (e)=>{
-              const tr = e.target.closest('tr'); const i = +tr.dataset.idx;
-              let v = parseInt(e.target.value) || 1; if(v < 1) v = 1;
-              changeQty(i, v);
-            });
-          });
-          root.querySelectorAll('.remove').forEach(rem=>{
-            rem.addEventListener('click', (e)=>{
-              const i = +e.target.dataset.idx;
-              removeItem(i);
-            });
-          });
-        }
-
-        function changeQty(index, qty){
-          const cart = getCart();
-          if(!cart[index]) return;
-          cart[index].qty = qty;
-          saveCart(cart);
-          renderCart();
-        }
-
-        function removeItem(index){
-          const cart = getCart();
-          if(!cart[index]) return;
-          cart.splice(index,1);
-          saveCart(cart);
-          renderCart();
-        }
-
-        document.getElementById('clear-cart').addEventListener('click', ()=>{
-          if(!confirm('آیا از پاک شدن کامل سبد مطمئن هستید؟')) return;
-          localStorage.removeItem(CART_KEY);
-          updateCartCount();
-          renderCart();
-        });
-
-        // دکمه پرداخت فعلا به همین صفحه هشدار می‌دهد
-        document.getElementById('checkout-btn').addEventListener('click', (e)=>{
-          e.preventDefault();
-          const cart = getCart();
-          if(!cart.length){ alert('سبد خرید خالی است'); return; }
-          alert('به صفحه پرداخت منتقل می‌شوید (شبیه‌سازی).');
-        });
-
-        // initial
-        updateCartCount();
-        renderCart();
-      })();
-    </script>
-  </body>
-</html>
+  document.addEventListener('DOMContentLoaded', updateCartCount);
+})();
+ // ...existing code...
