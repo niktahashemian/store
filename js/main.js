@@ -1,36 +1,60 @@
-let slideIndex = 1 ;
-let remainingTime = 70000 ;
+// ...existing code...
+(function(){
+  const CART_KEY = 'shop_cart_v1';
 
-function setTime(){
-    if(remainingTime == 0) return;
-    let h = Math.floor(remainingTime/3600);
-    let m = Math.floor((remainingTime%3600)/60);
-    let s = (remainingTime%3600)%60;
-    document.querySelector('#hours').innerHTML = h
-    document.querySelector('#minutes').innerHTML = m
-    document.querySelector('#seconds').innerHTML = s
-}
+  function getCart(){
+    try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; }
+    catch(e){ return []; }
+  }
+  function saveCart(cart){
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    updateCartCount();
+  }
 
-setInterval(()=>{
-    remainingTime -= 1;
-    setTime()
-} , 1000)
+  function updateCartCount(){
+    const cart = getCart();
+    const total = cart.reduce((s,i) => s + (i.qty || 1), 0);
+    const el = document.getElementById('cart-count');
+    if(el) el.textContent = total;
+  }
 
-function setSlide(input,index){
-    slideIndex = index;
-    let item = document.querySelector(`#${input}`)
-    let slides = [...document.querySelector('.slides').children] ;
-    slides.forEach((element)=>{
-        element.classList.remove('active');
-    })
-    item.classList.add('active');
-}
+  function addToCart(item){
+    const cart = getCart();
+    const existing = cart.find(i => i.title === item.title && i.price === item.price);
+    if(existing) existing.qty = (existing.qty||1) + 1;
+    else { item.qty = 1; cart.push(item); }
+    saveCart(cart);
+  }
 
-setInterval(()=>{
-    slideIndex +=1;
-    if(slideIndex==4){
-        slideIndex=1;
+  function readProductFromCard(card){
+    const titleEl = card.querySelector('.title');
+    const priceEl = card.querySelector('.price');
+    const imgEl = card.querySelector('.img-sec img');
+    return {
+      title: titleEl ? titleEl.textContent.trim() : 'محصول',
+      price: priceEl ? priceEl.textContent.trim() : '',
+      img: imgEl ? imgEl.src : ''
+    };
+  }
+
+  document.addEventListener('click', function(e){
+    const a = e.target.closest('a.b-text');
+    if(!a) return;
+    // اگر متن شامل "خرید" باشه اقدام کن
+    if(a.textContent && a.textContent.trim().includes('خرید')){
+      e.preventDefault();
+      const card = a.closest('.shoping-card');
+      if(!card) return;
+      const item = readProductFromCard(card);
+      addToCart(item);
+      updateCartCount();
+      // برای دیباگ: کنسول هم چاپ کن
+      console.log('added to cart:', item);
+      // بازخورد کوتاه به کاربر
+      alert('محصول به سبد اضافه شد');
     }
-    setSlide(`slide${slideIndex}` , slideIndex)
-} , 4000)
+  });
 
+  document.addEventListener('DOMContentLoaded', updateCartCount);
+})();
+ // ...existing code...
