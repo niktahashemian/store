@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fa">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>سبد خرید</title>
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.css" />
+    <style>
+      body{direction:rtl;font-family:Vazir,Arial;padding:20px}
+      nav{display:flex;justify-content:space-between;margin-bottom:16px}
+      #cart-count{background:#e33;color:#fff;border-radius:50%;padding:2px 7px;font-size:12px}
+      .cart-container{max-width:1100px;margin:0 auto}
+      table.cart{width:100%;border-collapse:collapse}
+      table.cart th,table.cart td{padding:12px;border-bottom:1px solid #eee;text-align:right;vertical-align:middle}
+      table.cart img{width:80px;border-radius:4px}
+      .qty-controls{display:flex;gap:6px;align-items:center}
+      .btn{padding:10px 14px;border-radius:4px;background:#2d7cff;color:#fff;text-decoration:none}
+      .btn.ghost{background:#f3f3f3;color:#333}
+      .empty{text-align:center;padding:40px;color:#666}
+      .remove{color:#b00;cursor:pointer}
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div><a href="./index.html" class="btn ghost"><i class="fas fa-arrow-right"></i> بازگشت به فروشگاه</a></div>
+      <div><a href="./cart.html"><i class="fas fa-shopping-cart"></i> <span id="cart-count">0</span></a></div>
+    </nav>
+
+    <main class="cart-container">
+      <h2>سبد خرید شما</h2>
+      <div id="cart-root"></div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px">
+        <button id="clear-cart" class="btn ghost">پاک کردن سبد</button>
+        <a id="checkout-btn" class="btn" href="#">ادامه فرایند سفارش</a>
+      </div>
+    </main>
+
+    <script>
+      (function(){
+        const CART_KEY = 'shop_cart_v1';
+        function getCart(){ try{return JSON.parse(localStorage.getItem(CART_KEY))||[]}catch(e){return []} }
+        function saveCart(cart){ localStorage.setItem(CART_KEY, JSON.stringify(cart)); updateCartCount(); }
+        function updateCartCount(){ const cart=getCart(); const total=cart.reduce((s,i)=>s+(i.qty||1),0); const el=document.getElementById('cart-count'); if(el) el.textContent=total; }
+        function parsePersianPrice(str){
+          if(!str) return 0; str=String(str).replace(/[٬٫,\s]/g,'').trim(); const n=parseFloat((str.match(/[\d\.]+/)||['0'])[0])||0;
+          if(/میلیون/i.test(str)) return Math.round(n*1000000);
+          if(/هزار/i.test(str)) return Math.round(n*1000);
+          return Math.round(n);
+        }
+        function formatToman(n){ return Number(n).toLocaleString('fa-IR') + ' تومان'; }
+
+        function renderEmpty(){ document.getElementById('cart-root').innerHTML='<div class="empty"><p>سبد خرید شما خالی است.</p><p><a href="./index.html" class="btn">رفتن به فروشگاه</a></p></div>'; document.getElementById('checkout-btn').style.display='none'; document.getElementById('clear-cart').style.display='none'; }
+
+        function renderCart(){
+          const cart=getCart(); const root=document.getElementById('cart-root');
+          if(!cart.length){ renderEmpty(); return; }
+          document.getElementById('checkout-btn').style.display=''; document.getElementById('clear-cart').style.display='';
+          let total=0; let html='<table class="cart"><thead><tr><th>محصول</th><th>قیمت واحد</th><th>تعداد</th><th>جمع</th><th></th></tr></thead><tbody>';
+          cart.forEach((it,idx)=>{
+            const qty=it.qty||1; const unit=parsePersianPrice(it.price); const sum=unit*qty; total+=sum;
+            const img = it.img ? '<img src="'+it.img+'" alt="">' : '';
+            html += '<tr data-idx="'+idx+'"><td>'+img+' <div style="display:inline-block;vertical-align:middle;margin-right:10px">'+(it.title||'محصول')+'</div></td><td>'+(it.price||formatToman(unit))+'</td><td><div class="qty-controls"><button class="dec">-</button><input class="qty" type="number" min="1" value="'+qty+'" style="width:56px;text-align:center"/><button class="inc">+</button></div></td><td>'+formatToman(sum)+'</td><td><span class="remove" data-idx="'+idx+'">حذف</span></td></tr>';
+          });
+          html += '</tbody></table><div style="text-align:right;font-weight:700;margin-top:10px">مجموع : '+formatToman(total)+'</div>';
+          root.innerHTML = html;
+
+          root.querySelectorAll('.inc').forEach(btn=> btn.addEventListener('click', e=>{ const tr=e.target.closest('tr'); changeQty(+tr.dataset.idx, (getCart()[+tr.dataset.idx].qty||1)+1); }));
+          root.querySelectorAll('.dec').forEach(btn=> btn.addEventListener('click', e=>{ const tr=e.target.closest('tr'); const i=+tr.dataset.idx; const c=(getCart()[i].qty||1); if(c>1) changeQty(i, c-1); }));
+          root.querySelectorAll('.qty').forEach(inp=> inp.addEventListener('change', e=>{ const tr=e.target.closest('tr'); const i=+tr.dataset.idx; let v=parseInt(e.target.value)||1; if(v<1)v=1; changeQty(i,v); }));
+          root.querySelectorAll('.remove').forEach(r=> r.addEventListener('click', e=>{ removeItem(+e.target.dataset.idx); }));
+        }
+
+        function changeQty(i,qty){ const cart=getCart(); if(!cart[i]) return; cart[i].qty=qty; saveCart(cart); renderCart(); }
+        function removeItem(i){ const cart=getCart(); if(!cart[i]) return; cart.splice(i,1); saveCart(cart); renderCart(); }
+
+        document.getElementById('clear-cart').addEventListener('click', ()=>{ if(!confirm('آیا از پاک شدن کامل سبد مطمئن هستید؟')) return; localStorage.removeItem(CART_KEY); updateCartCount(); renderCart(); });
+        document.getElementById('checkout-btn').addEventListener('click', e=>{ e.preventDefault(); if(!getCart().length){ alert('سبد خرید خالی است'); return; } alert('هدایت به صفحه پرداخت (شبیه‌سازی)'); });
+
+        updateCartCount(); renderCart();
+      })();
+    </script>
+  </body>
+</html>

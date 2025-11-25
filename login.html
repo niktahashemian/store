@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ورود | هدست</title>
+<style>
+:root{
+  --primary:#003DFF;
+  --pink:#FF00F9;
+  --yellow:#FFFF00;
+  --text:#0f172a;
+  --muted:#64748b;
+  --border:#e5e7eb;
+  --bg:#f8fafc;
+  --radius:16px;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--text); font-family:Vazirmatn, IRANSans, system-ui, Segoe UI, Arial}
+a{color:var(--primary); text-decoration:none}
+a:hover{text-decoration:underline}
+.wrapper{min-height:100dvh; display:grid; place-items:center; padding:24px}
+.card{
+  width:min(300px, 100vw);
+  background:#fff; border:1px solid var(--border); border-radius:var(--radius);
+  padding:20px; box-shadow:0 6px 20px rgba(0,0,0,.04);
+}
+.logo{display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:12px; color:var(--primary); font-weight:900; font-size:22px}
+.logo i{width:14px;height:14px;border-radius:4px;background:var(--pink); display:inline-block}
+.title{font-weight:900; font-size:22px; text-align:center; margin:8px 0 4px ; text-align: right;}
+.subtitle{color:var(--muted); font-size:14px; text-align:center; margin-bottom:18px ; text-align: right; margin-top: 70px;}
+.form{display:flex; flex-direction:column; gap:12px}
+.input, select{
+  height:44px; padding:0 14px; border:1px solid var(--border); border-radius:12px; outline:none; width:100%;
+  background:#fff;
+}
+.input:focus{border-color:var(--primary); box-shadow:0 0 0 3px #003dff22}
+.btn{height:46px; border-radius:12px; border:0; background:var(--primary); color:#fff; cursor:pointer; font-weight:800}
+.btn:disabled{opacity:.5; cursor:not-allowed}
+.sep{display:flex; align-items:center; gap:10px; color:#94a3b8; font-size:12px; margin:8px 0}
+.sep:before,.sep:after{content:""; flex:1; height:1px; background:var(--border)}
+.switch-auth{display:flex; justify-content:center; gap:10px; margin-top:14px; font-size:14px}
+.helper{font-size:12px; color:#ef4444; min-height:18px}
+.footer{margin-top:14px; text-align:center; font-size:12px; color:var(--muted)}
+.badge{background:#eef2ff; color:var(--primary); padding:2px 8px; border-radius:999px; font-size:11px; font-weight:800}
+.sms-row{display:flex; gap:8px; align-items:center}
+.otp{letter-spacing:8px; text-align:center; font-size:20px}
+.timer{color:var(--muted); font-size:12px}
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="card" id="step1">
+    <div class="logo"><i></i> هدست</div>
+    <div class="title">ورود</div>
+    <div class="subtitle">لطفاً شماره موبایل یا ایمیل خود را وارد کنید</div>
+    <form class="form" onsubmit="goNext(event)">
+      <input id="identifier" class="input" placeholder="mail@example.com یا 0912xxxxxxx" autocomplete="username" />
+      <div class="helper" id="idErr"></div>
+      <button class="btn" id="continueBtn">ادامه</button>
+    </form>
+    <div class="switch-auth">
+      <span>در هدست ثبت‌ نام نکرده‌اید؟</span> <a href="./Registration.html" onclick="toRegister()">ثبت‌نام</a>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="card" id="step2" style="display:none">
+    <div class="logo"><i></i> هدست</div>
+    <div class="title">تأیید ورود <span class="badge">امن</span></div>
+    <div class="subtitle">کد یکبارمصرف به <span id="idShown">...</span> ارسال شد</div>
+
+    <form class="form" onsubmit="submitLogin(event)">
+      <div class="sms-row">
+        <input id="otp" class="input otp" inputmode="numeric" maxlength="6" placeholder="— — — — — —" autocomplete="one-time-code" />
+        <button type="button" class="btn" style="width:170px" onclick="resend()" id="resendBtn" disabled>ارسال مجدد</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <div class="timer" id="timer">60 ثانیه تا ارسال مجدد</div>
+        <a href="#" onclick="usePassword(event)">ورود با رمز عبور</a>
+      </div>
+      <div class="helper" id="otpErr"></div>
+      <button class="btn">تأیید و ورود</button>
+    </form>
+
+    <div class="switch-auth"><a href="#" onclick="backToId()">بازگشت</a></div>
+    <div class="footer">با ورود، <a href="#">شرایط استفاده</a> و <a href="#">حریم خصوصی</a> را می‌پذیرید.</div>
+  </div>
+
+  <!-- Step 2 (password) -->
+  <div class="card" id="stepPass" style="display:none">
+    <div class="logo"><i></i> اسنپ‌برند</div>
+    <div class="title">ورود با رمز عبور</div>
+    <div class="subtitle"><span id="idShown2">...</span></div>
+    <form class="form" onsubmit="submitLogin(event)">
+      <input id="password" type="password" class="input" placeholder="رمز عبور" autocomplete="current-password" />
+      <div class="helper" id="passErr"></div>
+      <button class="btn">ورود</button>
+    </form>
+    <div class="switch-auth">
+      <a href="#" onclick="forgotPass(event)">فراموشی رمز عبور</a>
+      <span>•</span>
+      <a href="#" onclick="backToId()">بازگشت</a>
+    </div>
+  </div>
+</div>
+
+<script>
+let countdown = 60; let timerId;
+function goNext(e){ e.preventDefault();
+  const id = document.getElementById('identifier').value.trim();
+  const err = document.getElementById('idErr');
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id);
+  const phoneOk = /^(?:\+?98|0)?9\d{9}$/.test(id);
+  if(!emailOk && !phoneOk){ err.textContent = 'ایمیل یا شماره موبایل معتبر نیست.'; return; }
+  err.textContent='';
+  document.getElementById('idShown').textContent = id;
+  document.getElementById('idShown2').textContent = id;
+  document.getElementById('step1').style.display='none';
+  document.getElementById('step2').style.display='block';
+  startTimer();
+  // اینجا در حالت واقعی باید درخواست ارسال OTP به سرور ارسال شود.
+}
+
+function startTimer(){
+  clearInterval(timerId); countdown = 60;
+  document.getElementById('resendBtn').disabled = true;
+  document.getElementById('timer').textContent = countdown + ' ثانیه تا ارسال مجدد';
+  timerId = setInterval(()=>{
+    countdown--;
+    document.getElementById('timer').textContent = countdown + ' ثانیه تا ارسال مجدد';
+    if(countdown<=0){ clearInterval(timerId); document.getElementById('resendBtn').disabled = false; document.getElementById('timer').textContent='می‌توانید دوباره کد بگیرید'; }
+  },1000);
+}
+
+function resend(){
+  // درخواست ارسال مجدد OTP به سرور
+  startTimer();
+  alert('کد جدید ارسال شد.');
+}
+
+function usePassword(e){ e.preventDefault();
+  document.getElementById('step2').style.display='none';
+  document.getElementById('stepPass').style.display='block';
+}
+
+function backToId(){
+  document.getElementById('step2').style.display='none';
+  document.getElementById('stepPass').style.display='none';
+  document.getElementById('step1').style.display='block';
+}
+
+function submitLogin(e){ e.preventDefault();
+  // اینجا به API لاگین خود متصل شوید. فعلاً نمایشی:
+  const otp = document.getElementById('otp')?.value;
+  const pass = document.getElementById('password')?.value;
+  if(document.getElementById('step2').style.display==='block' && (!otp || otp.length<4)){
+    document.getElementById('otpErr').textContent='کد وارد شده صحیح نیست.'; return;
+  }
+  if(document.getElementById('stepPass').style.display==='block' && (!pass || pass.length<6)){
+    document.getElementById('passErr').textContent='رمز عبور باید حداقل ۶ کاراکتر باشد.'; return;
+  }
+  alert('ورود موفق! (دمو)');
+}
+
+function toRegister(){ alert('صفحه ثبت‌نام در حال توسعه است. می‌توانید این دکمه را به /register لینک کنید.'); }
+function forgotPass(e){ e.preventDefault(); alert('لینک بازیابی رمز عبور (نمایشی)'); }
+</script>
+</body>
+</html>
